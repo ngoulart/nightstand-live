@@ -3,94 +3,138 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NOMO motion: live</title>
+<title>NOMO Sleep live</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
-  :root { --ink:#1a1a1a; --gray:#6b6b6b; --steel:#3e5c76; --steel-soft:#e7ebf0; --red:#cc0000; --red-soft:#fcecec;
-          --gold:#c8902a; --gold-soft:#faf3e6; --green:#2e7d32; --line:#e6e6e6; --soft:#f5f5f5; --none:#e6e6e6; }
+  /* The NOMO look of the app (ios/NomoMotion/Theme.swift): a near-black grainy
+     page, heavy uppercase titles with a hand-drawn squiggle, pastel accents on
+     dark cards, capsule controls, torn paper for the message to read first. */
+  :root { --page:#151515; --card:#212121; --raised:#2c2c2c; --edge:rgba(255,255,255,.09);
+          --ink:#fafaf9; --gray:#a3a3a3; --dim:#6e6e6e; --paper-ink:#151515;
+          --yellow:#f6f37a; --pink:#f4a6ee; --mint:#86e5a8; --sky:#aae5ff; --blue:#3d9bff;
+          --none:#353535; --battery:#575757; --grain:none; color-scheme:dark; }
   * { box-sizing:border-box; }
-  body { margin:0; background:#fff; color:var(--ink); font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
-  .page { max-width:1080px; margin:0 auto; padding:28px 24px 60px; }
-  h1 { font-size:26px; margin:4px 0 6px; letter-spacing:-.01em; }
-  .sub { color:var(--gray); margin:0 0 12px; }
-  .rule { border-top:2px solid var(--red); margin:0 0 18px; }
-  .bar { display:flex; flex-wrap:wrap; gap:10px 22px; align-items:center; font-size:13px; color:var(--gray); margin-bottom:14px; }
-  .bar .live { display:inline-flex; align-items:center; gap:6px; font-weight:700; color:var(--ink); }
-  .dot { width:9px; height:9px; border-radius:50%; background:var(--green); display:inline-block; }
-  .dot.off { background:var(--red); }
-  .dot.fixed { background:var(--steel); }
-  .bar input[type=range] { vertical-align:middle; width:140px; accent-color:var(--steel); }
-  .bar label { display:inline-flex; align-items:center; gap:6px; }
-  .bar select, .bar input[type=datetime-local], .bar button { font:inherit; font-size:13px; color:var(--ink); }
-  .bar input[type=datetime-local] { border:1px solid var(--line); border-radius:4px; padding:2px 4px; background:#fff; }
+  body { margin:0; background:var(--grain) 0 0/180px 180px repeat, var(--page); color:var(--ink);
+         font:15px/1.45 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         -webkit-font-smoothing:antialiased; }
+  .page { max-width:1080px; margin:0 auto; padding:22px 24px 60px; }
+  .display { font-weight:900; text-transform:uppercase; letter-spacing:-.035em; line-height:1.02; margin:0; }
+  .squiggle { width:22px; height:12px; overflow:visible; flex:none; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+  .top { display:flex; align-items:center; justify-content:space-between; margin:0 4px 14px; }
+  .top .display { font-size:22px; }
+  .sticker { width:40px; height:40px; transform:rotate(12deg); filter:drop-shadow(0 3px 5px rgba(0,0,0,.45)); }
+  .paper-wrap { margin:4px 4px 26px; transform:rotate(-1.2deg); filter:drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+  .paper { background:var(--grain) 0 0/180px 180px repeat, var(--yellow); background-blend-mode:multiply;
+           color:var(--paper-ink); padding:24px 24px 22px; }
+  .paper h1 { font-size:30px; margin:0 0 10px; }
+  .paper p { margin:0; font-size:15px; font-weight:500; color:rgba(21,21,21,.75); max-width:860px; }
+  .paper p b { color:var(--paper-ink); }
+  .card { background:var(--card); border:1px solid var(--edge); border-radius:22px; }
+  .controls { padding:14px 18px; margin-bottom:14px; }
+  .bar { display:flex; flex-wrap:wrap; gap:10px 20px; align-items:center; font-size:13px; color:var(--gray); }
+  .bar + .bar { border-top:1px solid var(--edge); margin-top:12px; padding-top:12px; }
+  .bar .live { display:inline-flex; align-items:center; gap:7px; font-weight:800; color:var(--ink); }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--mint); box-shadow:0 0 0 3px rgba(134,229,168,.2); display:inline-block; }
+  .dot.off { background:var(--pink); box-shadow:0 0 0 3px rgba(244,166,238,.2); }
+  .dot.fixed { background:var(--sky); box-shadow:0 0 0 3px rgba(170,229,255,.2); }
+  .bar label { display:inline-flex; flex-wrap:wrap; align-items:center; gap:8px; max-width:100%; }
+  .bar b { color:var(--ink); }
+  .bar input[type=range] { width:140px; accent-color:var(--mint); }
+  .seg { display:inline-flex; flex-wrap:wrap; gap:2px; padding:3px; background:var(--raised); border-radius:18px; max-width:100%; }
+  .seg button { font:inherit; font-size:13px; font-weight:800; color:var(--gray); background:none; border:0; border-radius:999px; padding:5px 11px; cursor:pointer; white-space:nowrap; }
+  .seg button:hover { color:var(--ink); }
+  .seg button.on { background:var(--mint); color:var(--paper-ink); }
+  .bar input[type=datetime-local] { font:inherit; font-size:13px; color:var(--ink); background:var(--raised); border:1px solid var(--edge); border-radius:12px; padding:5px 9px; }
   .bar .nav { display:inline-flex; gap:6px; }
-  .bar .nav button { padding:2px 9px; border:1px solid var(--line); background:#fff; border-radius:4px; cursor:pointer; }
-  .bar .nav button:disabled { color:#bbb; cursor:default; }
+  .pill { font:inherit; font-size:13px; font-weight:700; color:var(--ink); background:var(--raised); border:1px solid var(--edge); border-radius:999px; padding:5px 14px; cursor:pointer; }
+  .pill:hover:not(:disabled) { background:#363636; }
+  .pill:disabled { color:var(--dim); cursor:default; }
+  .toggle { cursor:pointer; color:var(--ink); }
+  .toggle input { position:absolute; opacity:0; width:1px; height:1px; }
+  .toggle .sw { width:38px; height:22px; border-radius:999px; background:var(--raised); border:1px solid var(--edge); position:relative; flex:none; transition:background .15s; }
+  .toggle .sw::after { content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--gray); transition:transform .15s, background .15s; }
+  .toggle input:checked + .sw { background:var(--yellow); border-color:var(--yellow); }
+  .toggle input:checked + .sw::after { transform:translateX(16px); background:#fff; }
+  .toggle input:focus-visible + .sw { outline:2px solid var(--sky); outline-offset:2px; }
   .bar .hint { flex-basis:100%; font-size:12px; }
   .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:22px; }
-  .stat { border:1px solid var(--line); border-radius:8px; padding:12px 14px; }
-  .stat .k { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--gray); font-weight:700; }
-  .stat .v { font-size:26px; font-weight:800; margin:2px 0; }
-  .stat .v.red { color:var(--red); }
+  .stat { padding:14px 18px 16px; }
+  .stat .k { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:-.2px; }
+  .stat .v { font-size:38px; font-weight:900; letter-spacing:-.035em; line-height:1.1; margin:6px 0 2px; font-variant-numeric:tabular-nums; }
+  .stat .v.warn { color:var(--pink); }
   .stat .d { font-size:12.5px; color:var(--gray); }
-  .legend { font-size:12.5px; color:var(--gray); margin:0 0 12px; }
-  .legend .t { display:block; margin-bottom:6px; }
-  .legend .rows { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:6px 24px; }
+  .legend { font-size:12.5px; color:var(--gray); margin:0 4px 14px; }
+  .legend .t { display:block; margin-bottom:8px; }
+  .legend .rows { display:flex; flex-wrap:wrap; gap:8px 32px; }
   .legend .row { display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; }
-  .legend .row .lab { font-weight:700; color:var(--ink); min-width:68px; }
-  .legend .items span, .legend .row span { white-space:nowrap; display:inline-flex; align-items:center; }
+  .legend .row .lab { font-weight:800; color:var(--ink); min-width:68px; }
+  .legend .row span { white-space:nowrap; display:inline-flex; align-items:center; }
+  .legend .row span::before { content:""; display:inline-block; width:14px; height:9px; border-radius:999px; margin-right:6px; }
   .legend .row .lab::before { display:none; }
-  .legend .items span::before, .legend .row span::before { content:""; display:inline-block; width:12px; height:12px; border-radius:2px; margin-right:6px; vertical-align:-2px; }
-  .legend .row .mv::before { background:var(--red); } .legend .row .st::before { background:var(--steel); } .legend .row .nd::before { background:var(--none); }
-  .legend .row .sl::before { background:#6f8aa5; } .legend .row .aw::before { background:var(--gold); } .legend .row .ib::before { background:#d9dfe6; }
-  .legend .row .ln::before { background:#dfe6ec; border-top:2px solid #1a1a1a; height:8px; }
-  .legend .row .pl::before { background:#2e7d32; } .legend .row .ob::before { background:#b8c4cf; }
-  .legend .row .up::before, .legend .row .upbg::before { width:0; height:0; border-radius:0; background:none; border-left:6px solid transparent; border-right:6px solid transparent; border-top:11px solid #2e7d32; }
-  .legend .row .upbg::before { border-top-color:#3e5c76; }
-  .legend .row .fq::before { background:none; width:12px; height:12px; content:"\2715"; color:#cc0000; font-weight:800; font-size:12px; line-height:12px; text-align:center; }
-  .lane { border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:12px; }
-  .lane .head { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline; margin-bottom:8px; }
-  .lane .pid { font-family:ui-monospace,Menlo,monospace; font-weight:700; font-size:15px; }
+  .legend .row .mv::before { background:var(--pink); } .legend .row .st::before { background:var(--sky); } .legend .row .nd::before { background:var(--none); }
+  .legend .row .sl::before { background:var(--blue); } .legend .row .aw::before { background:var(--yellow); } .legend .row .ib::before { background:var(--dim); }
+  .legend .row .pl::before { background:var(--mint); } .legend .row .ob::before { background:var(--battery); }
+  .legend .row .up::before, .legend .row .upbg::before { width:0; height:0; border-radius:0; background:none; border-left:6px solid transparent; border-right:6px solid transparent; border-top:11px solid var(--mint); }
+  .legend .row .upbg::before { border-top-color:var(--gray); }
+  .legend .row .fq::before { background:none; width:12px; height:12px; content:"\2715"; color:var(--pink); font-weight:900; font-size:12px; line-height:12px; text-align:center; }
+  .lane { padding:16px 18px 14px; margin-bottom:12px; }
+  .lane .head { display:flex; flex-wrap:wrap; gap:6px 18px; align-items:center; margin-bottom:10px; }
+  .lane .pid { display:inline-flex; align-items:center; gap:8px; font-size:20px; font-variant-numeric:tabular-nums; }
   .lane .meta { font-size:13px; color:var(--gray); }
   .lane .meta b { color:var(--ink); }
-  .lane .meta .warn { color:var(--red); font-weight:700; }
-  .lane .meta .ok { color:var(--green); font-weight:700; }
+  .lane .meta .warn { color:var(--pink); font-weight:700; }
+  .lane .meta .ok { color:var(--mint); font-weight:700; }
   .strip { position:relative; }
   .strip svg { width:100%; display:block; touch-action:pan-y; cursor:crosshair; }
   .axis { position:relative; height:16px; font-size:11px; color:var(--gray); }
   .axis span { position:absolute; top:0; transform:translateX(-50%); white-space:nowrap; }
-  .axis span.now { transform:translateX(-100%); color:var(--ink); font-weight:700; }
-  .sel { position:absolute; top:0; bottom:16px; background:rgba(62,92,118,.16); border-left:1px solid var(--steel); border-right:1px solid var(--steel); display:none; pointer-events:none; }
-  .tip { position:absolute; pointer-events:none; background:#1a1a1a; color:#fff; font-size:12px; padding:5px 8px; border-radius:4px; transform:translate(-50%,-125%); white-space:nowrap; display:none; }
-  .totals { font-size:12.5px; color:var(--gray); margin-top:6px; }
+  .axis span.now { transform:translateX(-100%); color:var(--ink); font-weight:800; }
+  .sel { position:absolute; top:0; bottom:16px; background:rgba(170,229,255,.14); border-left:1px solid var(--sky); border-right:1px solid var(--sky); display:none; pointer-events:none; }
+  .tip { position:absolute; pointer-events:none; background:var(--raised); color:var(--ink); border:1px solid var(--edge); font-size:12px; padding:6px 10px; border-radius:10px; box-shadow:0 6px 16px rgba(0,0,0,.45); transform:translate(-50%,-125%); white-space:nowrap; display:none; }
+  .totals { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:12.5px; color:var(--gray); margin-top:8px; }
+  .totals span { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
   .totals b { color:var(--ink); }
-  .empty { color:var(--gray); padding:30px; text-align:center; border:1px dashed var(--line); border-radius:8px; }
-  .err { background:var(--red-soft); border-left:3px solid var(--red); padding:8px 12px; margin:0 0 14px; font-size:13.5px; border-radius:0 6px 6px 0; }
-  .note { background:var(--steel-soft); border-left:3px solid var(--steel); padding:8px 12px; margin:18px 0 0; font-size:13px; color:var(--ink); border-radius:0 6px 6px 0; }
+  .totals .sw { width:14px; height:9px; border-radius:999px; display:inline-block; }
+  .empty { color:var(--gray); padding:30px; text-align:center; border:1px dashed var(--edge); border-radius:22px; }
+  .err, .note { position:relative; padding:10px 12px 10px 18px; font-size:13.5px; color:var(--ink); border-radius:12px; }
+  .err::before, .note::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:2px; }
+  .err { background:rgba(244,166,238,.12); margin:0 0 14px; } .err::before { background:var(--pink); }
+  .note { background:rgba(170,229,255,.12); margin:18px 0 0; font-size:13px; } .note::before { background:var(--sky); }
+  code { font-family:ui-monospace,Menlo,monospace; font-size:.92em; }
+  @media (max-width:600px) {
+    .page { padding:16px 16px 48px; }
+    .paper { padding:20px 18px 18px; }
+    .paper h1 { font-size:23px; }
+    .controls, .stat, .lane { padding-left:14px; padding-right:14px; }
+  }
 </style>
 </head>
 <body>
 <div class="page">
-  <h1>Who is recording right now, and what the chosen hours looked like</h1>
-  <p class="sub">One lane per phone. Each bin of the phone's movement (1, 5 or 10 minutes, chosen below) is <b>moving</b>, <b>still</b>, or <b>not recorded</b>; below it whether the phone was plugged in and the night from Health. Bins reach the server only when the app runs, so a lane ends at that phone's last upload.</p>
-  <div class="rule"></div>
+  <div class="top"><span class="display">NOMO Sleep</span><span id="sticker"></span></div>
+  <div class="paper-wrap"><div class="paper" id="paper">
+    <h1 class="display">Who is recording right now, and what the chosen hours looked like</h1>
+    <p>One lane per phone. Each bin of the phone's movement (1, 5 or 10 minutes, chosen below) is <b>moving</b>, <b>still</b>, or <b>not recorded</b>; below it whether the phone was plugged in and the night from Health. Bins reach the server only when the app runs, so a lane ends at that phone's last upload.</p>
+  </div></div>
 
-  <div class="bar">
-    <span class="live"><span class="dot" id="dot"></span><span id="livetxt">connecting</span></span>
-    <span id="refreshed"></span>
-    <label>Still threshold <input type="range" id="thr" min="0.001" max="0.03" step="0.001" value="0.005"> <b id="thrv">0.005 g</b></label>
-    <label><input type="checkbox" id="hidesilent" checked> hide phones silent for 3+ days</label>
-  </div>
-  <div class="bar">
-    <label>Window <select id="hours">
-      <option value="1">last 1 h</option><option value="3">last 3 h</option><option value="6">last 6 h</option>
-      <option value="12">last 12 h</option><option value="24">last 24 h</option><option value="48">last 2 days</option>
-      <option value="72">last 3 days</option><option value="168">last 7 days</option><option value="custom">custom</option>
-    </select></label>
-    <label>Interval <select id="bin"><option value="60">1 min</option><option value="300">5 min</option><option value="600">10 min</option></select></label>
-    <label>from <input type="datetime-local" id="from" step="60"></label>
-    <label>to <input type="datetime-local" id="to" step="60"></label>
-    <span class="nav"><button id="earlier" title="Shift the window back by its own length">&#8592; earlier</button><button id="later" title="Shift the window forward by its own length">later &#8594;</button><button id="tonow" title="End the window now and keep it refreshing">now</button></span>
-    <span class="hint">Any window up to 14 days: pick a preset, edit the dates, step with the arrows, or drag across a lane with the mouse to zoom into that range. The address carries the window, so it can be bookmarked or sent.</span>
+  <div class="card controls">
+    <div class="bar">
+      <span class="live"><span class="dot" id="dot"></span><span id="livetxt">connecting</span></span>
+      <span id="refreshed"></span>
+      <label>Still threshold <input type="range" id="thr" min="0.001" max="0.03" step="0.001" value="0.005"> <b id="thrv">0.005 g</b></label>
+      <label class="toggle"><input type="checkbox" id="hidesilent" checked><span class="sw"></span>hide phones silent for 3+ days</label>
+    </div>
+    <div class="bar">
+      <label>Window <span class="seg" id="hours"></span></label>
+      <label>Interval <span class="seg" id="bin"></span></label>
+      <label>from <input type="datetime-local" id="from" step="60"></label>
+      <label>to <input type="datetime-local" id="to" step="60"></label>
+      <span class="nav"><button class="pill" id="earlier" title="Shift the window back by its own length">&#8592; earlier</button><button class="pill" id="later" title="Shift the window forward by its own length">later &#8594;</button><button class="pill" id="tonow" title="End the window now and keep it refreshing">now</button></span>
+      <span class="hint">Any window up to 14 days: pick a preset, edit the dates, step with the arrows, or drag across a lane with the mouse to zoom into that range. The address carries the window, so it can be bookmarked or sent.</span>
+    </div>
   </div>
 
   <div id="err"></div>
@@ -107,6 +151,64 @@
 
   <div class="note"><b>Reading a lane.</b> A recording is armed for 12 hours at every open, so a phone that opened the app at bedtime has a lane that runs to the morning once it opens again. Gray at the right end is normal until the next open or background refresh; gray for a whole night means the recording was not armed or the upload has not come in yet.</div>
 </div>
+
+<script>
+// The look, drawn once: the film grain (the app's tile: 5200 light and dark
+// specks at low alpha on 180 pt, seeded so every load looks the same), the
+// torn edges of the header paper, the moon sticker and the section squiggle.
+const C = {page: "#151515", card: "#212121", raised: "#2c2c2c", ink: "#fafaf9", gray: "#a3a3a3", dim: "#6e6e6e",
+           yellow: "#f6f37a", pink: "#f4a6ee", mint: "#86e5a8", sky: "#aae5ff", blue: "#3d9bff", none: "#353535", battery: "#575757"};
+const ACCENTS = [C.yellow, C.pink, C.mint, C.sky];
+function seeded(a) {
+  return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function squiggle(color) {
+  return `<svg class="squiggle" viewBox="0 0 22 12" style="stroke:${color}" aria-hidden="true"><path d="M0 6L7 .6L9.9 5L22 .2M4 12L11 7.4L13.6 11L22 6.6"/></svg>`;
+}
+(function () {
+  const side = 180, cv = document.createElement("canvas"), rnd = seeded(7);
+  cv.width = cv.height = side * 2;
+  const ctx = cv.getContext("2d");
+  ctx.scale(2, 2);
+  for (let k = 0; k < 5200; k++) {
+    const x = rnd() * side, y = rnd() * side, d = 0.5 + rnd() * 0.7, a = 0.03 + rnd() * 0.09;
+    ctx.fillStyle = (rnd() < 1 / 3 ? "rgba(0,0,0," : "rgba(255,255,255,") + a.toFixed(3) + ")";
+    ctx.fillRect(x, y, d, d);
+  }
+  document.documentElement.style.setProperty("--grain", `url(${cv.toDataURL("image/png")})`);
+
+  const paper = document.getElementById("paper");
+  const tear = () => {
+    const w = paper.offsetWidth, h = paper.offsetHeight, depth = 6, r = seeded(11), pts = [[0, depth / 2]];
+    let x = 0;
+    while (x < w) { x = Math.min(w, x + 6 + r() * 8); pts.push([x, r() * depth]); }
+    pts.push([w, h - depth / 2]);
+    while (x > 0) { x = Math.max(0, x - 6 - r() * 8); pts.push([x, h - r() * depth]); }
+    paper.style.clipPath = `polygon(${pts.map(([a, b]) => `${a.toFixed(1)}px ${b.toFixed(1)}px`).join(",")})`;
+  };
+  new ResizeObserver(tear).observe(paper);
+
+  // Die-cut sticker: a wobbly seven-lobed flower in yellow with a dark
+  // outline on a white border, a crescent moon and two z's.
+  const blob = (R) => {
+    const r = R / 1.1;
+    let d = "";
+    for (let k = 0; k <= 120; k++) {
+      const a = k / 120 * 2 * Math.PI, rr = r * (1 + 0.1 * Math.sin(7 * a));
+      d += (k ? "L" : "M") + (50 + rr * Math.cos(a)).toFixed(2) + " " + (50 + rr * Math.sin(a)).toFixed(2);
+    }
+    return d + "Z";
+  };
+  const sticker = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
+    `<defs><mask id="moon"><rect width="100" height="100" fill="#fff"/><circle cx="56" cy="44" r="14" fill="#000"/></mask></defs>` +
+    `<path d="${blob(50)}" fill="#fff" fill-opacity=".94"/><path d="${blob(43.9)}" fill="${C.yellow}" stroke="${C.page}" stroke-width="4.4"/>` +
+    `<circle cx="45" cy="56" r="17" fill="${C.page}" mask="url(#moon)"/>` +
+    `<text x="59" y="44" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="15" fill="${C.page}">z</text>` +
+    `<text x="69" y="33" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="11" fill="${C.page}">z</text></svg>`;
+  document.getElementById("sticker").innerHTML = sticker.replace("<svg ", `<svg class="sticker" aria-hidden="true" `);
+  document.querySelector("link[rel=icon]").href = "data:image/svg+xml," + encodeURIComponent(sticker);
+})();
+</script>
 
 <script>
 (function () {
@@ -202,10 +304,19 @@
   const binText = (s) => s < 60 ? `${s}-second` : `${s / 60}-minute`;
   const pollSeconds = () => !view.live ? 0 : view.hours <= 1 ? 30 : view.hours <= 12 ? 60 : view.hours <= 24 ? 120 : 300;
 
+  // Capsule segments, the selected option filled in mint; a window that is
+  // not a preset leaves every window segment empty.
+  const PRESET_LABELS = {1: "1 h", 3: "3 h", 6: "6 h", 12: "12 h", 24: "24 h", 48: "2 days", 72: "3 days", 168: "7 days"};
+  function buildSeg(id, options, onPick) {
+    $(id).innerHTML = options.map(([v, label]) => `<button type="button" data-v="${v}">${label}</button>`).join("");
+    $(id).addEventListener("click", (ev) => { const b = ev.target.closest("button"); if (b) onPick(b.dataset.v); });
+  }
+  const setSeg = (id, v) => $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+
   function syncControls() {
     const to = view.live ? nowS() : view.to, from = to - spanS();
-    $("hours").value = view.live && PRESETS.includes(String(view.hours)) ? String(view.hours) : "custom";
-    $("bin").value = String(view.bin);
+    setSeg("hours", view.live && PRESETS.includes(String(view.hours)) ? String(view.hours) : "");
+    setSeg("bin", String(view.bin));
     $("from").value = toInput(from); $("to").value = toInput(to);
     $("later").disabled = view.live; $("tonow").disabled = view.live;
     // The address carries the window, so a view can be bookmarked or sent.
@@ -331,8 +442,8 @@
 
   // Track layout in viewBox units, top to bottom: marks, movement bar,
   // charging bar, sleep bar, tick marks; the labels are HTML below the SVG.
-  const G = {W: 1440, top: 14, h: 40, chgH: 10, sleepH: 12};
-  G.chgTop = G.top + G.h + 6; G.sleepTop = G.chgTop + G.chgH + 8; G.axisBase = G.sleepTop + G.sleepH + 6; G.H = G.axisBase + 8;
+  const G = {W: 1440, top: 14, h: 44, chgH: 10, sleepH: 12};
+  G.chgTop = G.top + G.h + 6; G.sleepTop = G.chgTop + G.chgH + 6; G.axisBase = G.sleepTop + G.sleepH + 6; G.H = G.axisBase + 8;
 
   function strip(p, c) {
     const {W, top, h, chgTop, chgH, sleepTop, sleepH, axisBase, H} = G;
@@ -346,11 +457,14 @@
       }
       return out;
     };
-    let rects = bars(columns(c.cat, c.n, cols, [2, 1]), top, h, ["#e6e6e6", "#3e5c76", "#cc0000"]);
-    rects += bars(columns(c.charging, c.n, cols, [1, 2]), chgTop, chgH, ["#f5f5f5", "#2e7d32", "#b8c4cf"]);
-    rects += bars(columns(c.sleep, c.n, cols, [2, 3, 1]), sleepTop, sleepH, ["#f5f5f5", "#d9dfe6", "#6f8aa5", "#c8902a"]);
-    // Above the movement bar: uploads as triangles (green = the participant
-    // opened the app, steel = background or keep-alive) and a red cross per
+    const id = "lane" + labels.get(p.pid);
+    const clip = (k, y, height) => `<clipPath id="${id}${k}"><rect class="round" data-r="${Math.min(10, height / 2)}" x="0" y="${y}" width="${W}" height="${height}"/></clipPath>`;
+    let rects = `<defs>${clip("m", top, h)}${clip("c", chgTop, chgH)}${clip("s", sleepTop, sleepH)}</defs>`;
+    rects += `<g clip-path="url(#${id}m)">${bars(columns(c.cat, c.n, cols, [2, 1]), top, h, [C.none, C.sky, C.pink])}</g>`;
+    rects += `<g clip-path="url(#${id}c)">${bars(columns(c.charging, c.n, cols, [1, 2]), chgTop, chgH, [C.raised, C.mint, C.battery])}</g>`;
+    rects += `<g clip-path="url(#${id}s)">${bars(columns(c.sleep, c.n, cols, [2, 3, 1]), sleepTop, sleepH, [C.raised, C.dim, C.blue, C.yellow])}</g>`;
+    // Above the movement bar: uploads as triangles (mint = the participant
+    // opened the app, gray = background or keep-alive) and a pink cross per
     // force-quit (forceQuit exact; terminated inferred at the next launch,
     // dashed). Marks closer than a viewBox unit share one drawing, the
     // participant's opens first.
@@ -361,18 +475,18 @@
     const arrivals = (p.arrivals || []).filter(([t]) => t >= c.since && t <= c.until);
     for (const a of [...arrivals.filter(opened), ...arrivals.filter(x => !opened(x))]) {
       const x = xOf(a[0]);
-      rects += mark(x, `<polygon points="${(x - 5).toFixed(1)},1 ${(x + 5).toFixed(1)},1 ${x.toFixed(1)},${top - 1}" fill="${opened(a) ? "#2e7d32" : "#3e5c76"}"/>`);
+      rects += mark(x, `<polygon points="${(x - 5).toFixed(1)},1 ${(x + 5).toFixed(1)},1 ${x.toFixed(1)},${top - 1}" fill="${opened(a) ? C.mint : C.gray}"/>`);
     }
     seen.clear();
     for (const [t, ev] of (p.screen || [])) {
       if (t < c.since || t > c.until || (ev !== "forceQuit" && ev !== "terminated")) continue;
       const x = xOf(t);
-      rects += mark(x, `<path d="M${(x - 4).toFixed(1)} 1 L${(x + 4).toFixed(1)} ${top - 3} M${(x + 4).toFixed(1)} 1 L${(x - 4).toFixed(1)} ${top - 3}" stroke="#cc0000" stroke-width="${ev === "forceQuit" ? 2 : 1.2}" ${ev === "terminated" ? 'stroke-dasharray="2,1.5"' : ""}/>`);
+      rects += mark(x, `<path d="M${(x - 4).toFixed(1)} 1 L${(x + 4).toFixed(1)} ${top - 3} M${(x + 4).toFixed(1)} 1 L${(x - 4).toFixed(1)} ${top - 3}" stroke="${C.pink}" stroke-width="${ev === "forceQuit" ? 2 : 1.2}" ${ev === "terminated" ? 'stroke-dasharray="2,1.5"' : ""}/>`);
     }
     // Last upload marker.
     if (p.last && p.last.created >= c.since && p.last.created <= c.until) {
       const x = xOf(p.last.created).toFixed(1);
-      rects += `<line x1="${x}" x2="${x}" y1="${top - 4}" y2="${axisBase}" stroke="#1a1a1a" stroke-width="1" stroke-dasharray="2,2"/>`;
+      rects += `<line x1="${x}" x2="${x}" y1="${top - 4}" y2="${axisBase}" stroke="${C.ink}" stroke-opacity=".6" stroke-width="1" stroke-dasharray="2,2"/>`;
     }
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" data-lane="${labels.get(p.pid)}" style="height:${H}px">${rects}<g class="ticks"></g></svg><div class="axis"></div><div class="sel"></div><div class="tip"></div>`;
   }
@@ -419,10 +533,11 @@
     const minors = minor ? ticksBetween(since, until, minor).filter(t => !majorSet.has(t)) : [];
     const xOf = (t) => (t - since) / span;
     let lines = "", labels = "";
-    for (const t of minors) { const x = (xOf(t) * G.W).toFixed(1); lines += `<line x1="${x}" x2="${x}" y1="${G.axisBase}" y2="${G.axisBase + 3}" stroke="#6b6b6b" stroke-width="1"/>`; }
+    stripEl.querySelectorAll("rect.round").forEach(r => { const px = parseFloat(r.dataset.r); r.setAttribute("rx", (px * G.W / width).toFixed(2)); r.setAttribute("ry", px); });
+    for (const t of minors) { const x = (xOf(t) * G.W).toFixed(1); lines += `<line x1="${x}" x2="${x}" y1="${G.axisBase}" y2="${G.axisBase + 3}" stroke="${C.dim}" stroke-width="1"/>`; }
     for (const t of majors) {
       const f = xOf(t), x = (f * G.W).toFixed(1);
-      lines += `<line x1="${x}" x2="${x}" y1="${G.axisBase}" y2="${G.axisBase + 6}" stroke="#6b6b6b" stroke-width="1"/>`;
+      lines += `<line x1="${x}" x2="${x}" y1="${G.axisBase}" y2="${G.axisBase + 6}" stroke="${C.gray}" stroke-width="1"/>`;
       labels += `<span style="left:${(f * 100).toFixed(3)}%">${labelFor(t, step)}</span>`;
     }
     labels += `<span class="now" style="left:100%">${view.live ? "now" : fmtClock(until)}</span>`;
@@ -454,13 +569,13 @@
     const cov = active.map(p => { const c = cls.get(p.pid); return (c.mv + c.st) / c.n; }).sort((a, b) => a - b);
     const medCov = cov.length ? cov[Math.floor(cov.length / 2)] : 0;
     $("stats").innerHTML = `
-      <div class="stat"><div class="k">Phones heard from</div><div class="v">${active.length}</div><div class="d">with an upload in ${spanText}, of ${phones.length} ever seen</div></div>
-      <div class="stat"><div class="k">Recording now</div><div class="v ${armed.length ? "" : "red"}">${armed.length}</div><div class="d">phones inside a 12-hour window armed at their last open</div></div>
-      <div class="stat"><div class="k">Uploads</div><div class="v">${uploads}</div><div class="d">in ${spanText}, all triggers</div></div>
-      <div class="stat"><div class="k">Coverage</div><div class="v">${Math.round(medCov * 100)}%</div><div class="d">median share of the window with a recorded bin, phones heard from</div></div>`;
+      <div class="card stat"><div class="k">Phones heard from ${squiggle(C.yellow)}</div><div class="v">${active.length}</div><div class="d">with an upload in ${spanText}, of ${phones.length} ever seen</div></div>
+      <div class="card stat"><div class="k">Recording now ${squiggle(C.pink)}</div><div class="v ${armed.length ? "" : "warn"}">${armed.length}</div><div class="d">phones inside a 12-hour window armed at their last open</div></div>
+      <div class="card stat"><div class="k">Uploads ${squiggle(C.mint)}</div><div class="v">${uploads}</div><div class="d">in ${spanText}, all triggers</div></div>
+      <div class="card stat"><div class="k">Coverage ${squiggle(C.sky)}</div><div class="v">${Math.round(medCov * 100)}%</div><div class="d">median share of the window with a recorded bin, phones heard from</div></div>`;
 
     if (!phones.length) { $("lanes").innerHTML = `<div class="empty">No uploads yet.</div>`; return; }
-    $("lanes").innerHTML = phones.map(p => {
+    $("lanes").innerHTML = phones.map((p, k) => {
       const c = cls.get(p.pid), L = p.last;
       const stale = now - L.created > 26 * 3600;
       const rec = L.accel_available === false ? `<span class="warn">no accelerometer on this device</span>`
@@ -470,14 +585,21 @@
       const bat = L.battery_state && L.battery_state !== "unknown"
         ? ` · ${L.battery_state === "unplugged" ? "on battery" : "plugged in"}${L.battery_level != null ? ` ${L.battery_level}%` : ""}${L.low_power ? ", Low Power Mode" : ""} at last upload` : "";
       const quits = (p.screen || []).filter(([t, e]) => t >= c.since && t <= c.until && (e === "forceQuit" || e === "terminated")).length;
-      return `<div class="lane">
-        <div class="head"><span class="pid">${labels.get(p.pid)}</span>
+      const sw = (color) => `<i class="sw" style="background:${color}"></i>`;
+      const totals = [`${sw(C.pink)}<b>${mins(c.mv)}</b> moving`, `${sw(C.sky)}<b>${mins(c.st)}</b> still`,
+                      `${sw(C.none)}<b>${mins(c.nd)}</b> no data`, `${sw(C.blue)}<b>${mins(c.asleep)}</b> asleep`];
+      if (quits) totals.push(`<b>${quits}</b> force-quit${quits === 1 ? "" : "s"}`);
+      if (c.hasCharging) totals.push(`${sw(C.mint)}<b>${mins(c.plugged)}</b> plugged in`,
+                                     `<b>${(p.charging || []).filter(([t, e]) => t >= c.since && t <= c.until && e === "pluggedIn").length}</b> plug-ins`);
+      totals.push(`last bin ${c.mv + c.st ? fmtDT(p.bins[p.bins.length - 1][0]) : "none in window"}`);
+      return `<div class="card lane">
+        <div class="head"><span class="pid display">${labels.get(p.pid)} ${squiggle(ACCENTS[k % ACCENTS.length])}</span>
           <span class="meta">last upload <b class="${stale ? "warn" : ""}">${ago(L.created, now)}</b> (${fmtDT(L.created)}, ${L.trigger || "v1.0"})${errs}</span>
           <span class="meta">${rec}${L.keep_alive ? ` · <span class="ok">keep-alive on</span>` : ""}${bat}</span>
           <span class="meta">${p.uploads_window} upload${p.uploads_window === 1 ? "" : "s"} in window · ${p.uploads} total · v${L.app_version || "?"} · ${L.model || ""} · code <b>${p.receipt}</b></span>
         </div>
         <div class="strip">${strip(p, c)}</div>
-        <div class="totals"><b>${mins(c.mv)}</b> moving · <b>${mins(c.st)}</b> still · <b>${mins(c.nd)}</b> no data · <b>${mins(c.asleep)}</b> asleep${quits ? ` · <b>${quits}</b> force-quit${quits === 1 ? "" : "s"}` : ""}${c.hasCharging ? ` · <b>${mins(c.plugged)}</b> plugged in · <b>${(p.charging || []).filter(([t, e]) => t >= c.since && t <= c.until && e === "pluggedIn").length}</b> plug-ins` : ""} · last bin ${c.mv + c.st ? fmtDT(p.bins[p.bins.length - 1][0]) : "none in window"}</div>
+        <div class="totals">${totals.map(t => `<span>${t}</span>`).join("")}</div>
       </div>`;
     }).join("");
     wire();
@@ -530,13 +652,11 @@
 
   $("thr").addEventListener("input", render);
   $("hidesilent").addEventListener("change", render);
-  $("bin").addEventListener("change", () => {
-    view.bin = parseInt($("bin").value, 10);
+  buildSeg("bin", BINS.map(b => [b, `${b / 60} min`]), (v) => {
+    view.bin = parseInt(v, 10);
     remember("nomoBin", String(view.bin)); syncControls(); load();
   });
-  $("hours").addEventListener("change", () => {
-    const v = $("hours").value;
-    if (v === "custom") { $("from").focus(); return; }
+  buildSeg("hours", PRESETS.map(h => [h, PRESET_LABELS[h]]), (v) => {
     remember("nomoHours", v); setLive(parseFloat(v));
   });
   const fromFields = () => {
