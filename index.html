@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
-  /* The NOMO look of the app (ios/NomoMotion/Theme.swift): a near-black grainy
+  /* The look of the app (Theme.swift): a near-black grainy
      page, heavy uppercase titles with a hand-drawn squiggle, pastel accents on
      dark cards, capsule controls, torn paper for the message to read first. */
   :root { --page:#151515; --card:#212121; --raised:#2c2c2c; --edge:rgba(255,255,255,.09);
@@ -225,9 +225,9 @@ function squiggle(color) {
   const API = "https://mtzppuynickaaeehukqs.supabase.co/functions/v1/motion";
   let TOKEN = params.get("k") || "";
   try {
-    if (!TOKEN) TOKEN = localStorage.getItem("nomoToken") || "";
+    if (!TOKEN) TOKEN = localStorage.getItem("nsToken") || "";
     if (!TOKEN) TOKEN = (prompt("Dashboard token (MOTION_TOKEN in server/.env)") || "").trim();
-    if (TOKEN) localStorage.setItem("nomoToken", TOKEN);
+    if (TOKEN) localStorage.setItem("nsToken", TOKEN);
   } catch (e) {}
   // Test phones (pids starting TEST, or SMOKETEST, TUNNELTEST, DOCKERTEST, and
   // every simulator) are dropped as the answer arrives; /live still serves
@@ -281,14 +281,14 @@ function squiggle(color) {
   };
   {
     const f = parseWhen(params.get("from")), t = parseWhen(params.get("to"));
-    const h = parseFloat(params.get("hours")) || parseFloat(recall("nomoHours")) || 1;
+    const h = parseFloat(params.get("hours")) || parseFloat(recall("nsHours")) || 1;
     if (f !== null) {
       view.to = Math.min(t === null ? nowS() : t, nowS()); view.from = f;
       view.live = !(view.to > view.from);
     }
     if (view.live) view.hours = Math.min(Math.max(h, MIN_SPAN / 3600), MAX_SPAN / 3600);
     // The bin length: from the address, else the last choice, else a minute.
-    const b = parseInt(params.get("bin") || recall("nomoBin") || "", 10);
+    const b = parseInt(params.get("bin") || recall("nsBin") || "", 10);
     if (BINS.includes(b)) view.bin = b;
   }
 
@@ -763,10 +763,10 @@ function squiggle(color) {
   $("hidesilent").addEventListener("change", render);
   buildSeg("bin", BINS.map(b => [b, `${b / 60} min`]), (v) => {
     view.bin = parseInt(v, 10);
-    remember("nomoBin", String(view.bin)); syncControls(); load();
+    remember("nsBin", String(view.bin)); syncControls(); load();
   });
   buildSeg("hours", PRESETS.map(h => [h, PRESET_LABELS[h]]), (v) => {
-    remember("nomoHours", v); setLive(parseFloat(v));
+    remember("nsHours", v); setLive(parseFloat(v));
   });
   const fromFields = () => {
     const f = parseWhen($("from").value), t = parseWhen($("to").value);
