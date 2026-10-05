@@ -90,6 +90,7 @@
   .lane .meta b { color:var(--ink); }
   .lane .meta .warn { color:var(--pink); font-weight:700; }
   .lane .meta .ok { color:var(--mint); font-weight:700; }
+  .lane .head .remind { margin-left:auto; }
   .strip { position:relative; }
   .strip svg { width:100%; display:block; touch-action:pan-y; cursor:crosshair; }
   .axis { position:relative; height:16px; font-size:11px; color:var(--gray); }
@@ -650,6 +651,10 @@ function squiggle(color) {
       const nights = p.checkin_nights || [], clock = nightClock(L.time_zone, now);
       const checkin = !nights.length ? "" : `<span class="meta">${nights.includes(clock.last) ? `<span class="ok">checked in</span> for last night`
         : clock.open ? `<span class="warn">no check-in yet</span> for last night` : `<span class="warn">missed</span> last night's check-in`} · streak <b>${streak(nights, clock)}</b></span>`;
+      // The reminder: one visible notification to this phone, sent by hand;
+      // only a phone that registered for notifications can be reached.
+      const reminded = p.reminded ? `<span class="meta">reminded <b>${ago(p.reminded[0], now)}</b>${p.reminded[1] ? "" : ` · <span class="warn">not delivered</span>`}</span>` : "";
+      const remind = `<button type="button" class="pill remind" data-lane="${labels.get(p.pid)}"${p.push_tokens ? ` title="Send a notification asking to open the app"` : ` disabled title="This phone has not registered for notifications"`}>remind</button>`;
       const quits = (p.screen || []).filter(([t, e]) => t >= c.since && t <= c.until && (e === "forceQuit" || e === "terminated")).length;
       const sw = (color) => `<i class="sw" style="background:${color}"></i>`;
       const totals = [`${sw(C.pink)}<b>${mins(c.mv)}</b> moving`, `${sw(C.sky)}<b>${mins(c.st)}</b> still`,
@@ -677,8 +682,9 @@ function squiggle(color) {
         <div class="head"><span class="pid display">${labels.get(p.pid)} ${squiggle(ACCENTS[k % ACCENTS.length])}</span>
           <span class="meta">last upload <b class="${stale ? "warn" : ""}">${ago(L.created, now)}</b> (${fmtDT(L.created)}, ${L.trigger || "v1.0"})${errs}</span>
           <span class="meta">${rec}${L.keep_alive ? ` · <span class="ok">keep-alive on</span>` : ""}${bat}</span>
-          ${checkin}
+          ${checkin}${reminded}
           <span class="meta">${p.uploads_window} upload${p.uploads_window === 1 ? "" : "s"} in window · ${p.uploads} total · v${L.app_version || "?"} · ${L.model || ""} · code <b>${p.receipt}</b></span>
+          ${remind}
         </div>
         <div class="strip">${strip(p, c)}</div>
         <div class="totals">${totals.map(t => `<span>${t}</span>`).join("")}</div>${table}
@@ -736,6 +742,23 @@ function squiggle(color) {
     });
   }
 
+  // The remind button: confirm, send, and load again so the lane shows it.
+  $("lanes").addEventListener("click", async (ev) => {
+    const b = ev.target.closest("button.remind");
+    if (!b || b.disabled) return;
+    const lane = b.dataset.lane, p = data.phones.find(q => labels.get(q.pid) === lane);
+    if (!p || !confirm(`Send phone ${lane} a notification asking to open the app?`)) return;
+    b.disabled = true; b.textContent = "sending";
+    try {
+      const r = await fetch(`${API}/remind`, {method: "POST", headers: {"authorization": `Bearer ${TOKEN}`, "content-type": "application/json"}, body: JSON.stringify({pid: p.pid})});
+      const out = await r.json();
+      if (!r.ok || !out.ok) throw new Error(out.error || `server answered ${r.status}`);
+      await load();
+    } catch (e) {
+      b.disabled = false; b.textContent = "remind";
+      $("err").innerHTML = `<div class="err">Reminder to ${lane} not sent: ${e.message}.</div>`;
+    }
+  });
   $("thr").addEventListener("input", render);
   $("hidesilent").addEventListener("change", render);
   buildSeg("bin", BINS.map(b => [b, `${b / 60} min`]), (v) => {
