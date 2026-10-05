@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NOMO Sleep live</title>
+<title>NightStand live</title>
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +15,7 @@
   :root { --page:#151515; --card:#212121; --raised:#2c2c2c; --edge:rgba(255,255,255,.09);
           --ink:#fafaf9; --gray:#a3a3a3; --dim:#6e6e6e; --paper-ink:#151515;
           --yellow:#f6f37a; --pink:#f4a6ee; --mint:#86e5a8; --sky:#aae5ff; --blue:#3d9bff;
-          --none:#353535; --battery:#575757; --grain:none; color-scheme:dark; }
+          --none:#353535; --battery:#575757; --rest:#6f8fb3; --grain:none; color-scheme:dark; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--grain) 0 0/180px 180px repeat, var(--page); color:var(--ink);
          font:15px/1.45 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -60,7 +60,7 @@
   .toggle input:checked + .sw::after { transform:translateX(16px); background:#fff; }
   .toggle input:focus-visible + .sw { outline:2px solid var(--sky); outline-offset:2px; }
   .bar .hint { flex-basis:100%; font-size:12px; }
-  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:22px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:22px; }
   .stat { padding:14px 18px 16px; }
   .stat .k { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:-.2px; }
   .stat .v { font-size:38px; font-weight:900; letter-spacing:-.035em; line-height:1.1; margin:6px 0 2px; font-variant-numeric:tabular-nums; }
@@ -77,6 +77,9 @@
   .legend .row .mv::before { background:var(--pink); } .legend .row .st::before { background:var(--sky); } .legend .row .nd::before { background:var(--none); }
   .legend .row .sl::before { background:var(--blue); } .legend .row .aw::before { background:var(--yellow); } .legend .row .ib::before { background:var(--dim); }
   .legend .row .pl::before { background:var(--mint); } .legend .row .ob::before { background:var(--battery); }
+  .legend .row .ph::before { background:var(--rest); }
+  .legend .row .ci::before { width:3px; height:12px; border-radius:1px; background:var(--yellow); }
+  .legend .row .tt::before, .totals .dm { width:8px; height:8px; border-radius:1px; background:var(--sky); transform:rotate(45deg); display:inline-block; }
   .legend .row .up::before, .legend .row .upbg::before { width:0; height:0; border-radius:0; background:none; border-left:6px solid transparent; border-right:6px solid transparent; border-top:11px solid var(--mint); }
   .legend .row .upbg::before { border-top-color:var(--gray); }
   .legend .row .fq::before { background:none; width:12px; height:12px; content:"\2715"; color:var(--pink); font-weight:900; font-size:12px; line-height:12px; text-align:center; }
@@ -98,6 +101,11 @@
   .totals span { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
   .totals b { color:var(--ink); }
   .totals .sw { width:14px; height:9px; border-radius:999px; display:inline-block; }
+  .nights-wrap { overflow-x:auto; margin-top:10px; }
+  .nights { border-collapse:collapse; font-size:12.5px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .nights th { text-align:left; font-weight:700; color:var(--gray); padding:0 22px 5px 0; border-bottom:1px solid var(--edge); }
+  .nights td { padding:5px 22px 0 0; color:var(--ink); }
+  .nights td.muted { color:var(--gray); }
   .empty { color:var(--gray); padding:30px; text-align:center; border:1px dashed var(--edge); border-radius:22px; }
   .err, .note { position:relative; padding:10px 12px 10px 18px; font-size:13.5px; color:var(--ink); border-radius:12px; }
   .err::before, .note::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:2px; }
@@ -114,10 +122,10 @@
 </head>
 <body>
 <div class="page">
-  <div class="top"><span class="display">NOMO Sleep</span><span id="sticker"></span></div>
+  <div class="top"><span class="display">NightStand</span><span id="sticker"></span></div>
   <div class="paper-wrap"><div class="paper" id="paper">
     <h1 class="display">Who is recording right now, and what the chosen hours looked like</h1>
-    <p>One lane per phone. Each bin of the phone's movement (1, 5 or 10 minutes, chosen below) is <b>moving</b>, <b>still</b>, or <b>not recorded</b>; below it whether the phone was plugged in and the night from Health. Bins reach the server only when the app runs, so a lane ends at that phone's last upload.</p>
+    <p>One lane per phone. Each bin of the phone's movement (1, 5 or 10 minutes, chosen below) is <b>moving</b>, <b>still</b>, or <b>not recorded</b>; below it whether the phone was plugged in and the night, from Health or as the app read it from the phone at rest. Bins reach the server only when the app runs, so a lane ends at that phone's last upload.</p>
   </div></div>
 
   <div class="card controls">
@@ -140,12 +148,12 @@
   <div id="err"></div>
   <div class="stats" id="stats"></div>
 
-  <div class="legend"><span class="t">Three tracks per phone on one clock. Above the movement bar, a triangle marks each upload and a cross a force-quit. The charging track takes its events from phones that opted into the background keep-alive and the battery state of every upload from all of them.</span>
+  <div class="legend"><span class="t">Three tracks per phone on one clock. Above the movement bar, a triangle marks each upload, a cross a force-quit and a diamond a 1-minute test; a yellow line runs through the tracks at each morning check-in. The charging track takes its events from phones that opted into the background keep-alive and the battery state of every upload from all of them.</span>
     <div class="rows">
       <div class="row"><span class="lab">Movement</span><span class="mv">moving</span><span class="st">still</span><span class="nd">no data</span></div>
       <div class="row"><span class="lab">Charging</span><span class="pl">plugged in</span><span class="ob">on battery</span><span class="nd">unknown</span></div>
-      <div class="row"><span class="lab">Sleep</span><span class="sl">asleep</span><span class="aw">awake in bed</span><span class="ib">in bed</span></div>
-      <div class="row"><span class="lab">Marks</span><span class="up">upload after opening the app</span><span class="upbg">upload by itself</span><span class="fq">force-quit</span></div>
+      <div class="row"><span class="lab">Sleep</span><span class="sl">asleep</span><span class="aw">awake in bed</span><span class="ib">in bed</span><span class="ph">night read from the phone</span></div>
+      <div class="row"><span class="lab">Marks</span><span class="up">upload after opening the app</span><span class="upbg">upload by itself</span><span class="fq">force-quit</span><span class="ci">morning check-in</span><span class="tt">test</span></div>
     </div></div>
   <div id="lanes"></div>
 
@@ -157,7 +165,7 @@
 // specks at low alpha on 180 pt, seeded so every load looks the same), the
 // torn edges of the header paper, the moon sticker and the section squiggle.
 const C = {page: "#151515", card: "#212121", raised: "#2c2c2c", ink: "#fafaf9", gray: "#a3a3a3", dim: "#6e6e6e",
-           yellow: "#f6f37a", pink: "#f4a6ee", mint: "#86e5a8", sky: "#aae5ff", blue: "#3d9bff", none: "#353535", battery: "#575757"};
+           yellow: "#f6f37a", pink: "#f4a6ee", mint: "#86e5a8", sky: "#aae5ff", blue: "#3d9bff", none: "#353535", battery: "#575757", rest: "#6f8fb3"};
 const ACCENTS = [C.yellow, C.pink, C.mint, C.sky];
 function seeded(a) {
   return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
@@ -220,8 +228,9 @@ function squiggle(color) {
     if (!TOKEN) TOKEN = (prompt("Dashboard token (MOTION_TOKEN in server/.env)") || "").trim();
     if (TOKEN) localStorage.setItem("nomoToken", TOKEN);
   } catch (e) {}
-  // Test phones (pids starting TEST, or SMOKETEST, TUNNELTEST, DOCKERTEST) are
-  // dropped as the answer arrives; /live still serves them for the smoke test.
+  // Test phones (pids starting TEST, or SMOKETEST, TUNNELTEST, DOCKERTEST, and
+  // every simulator) are dropped as the answer arrives; /live still serves
+  // them for the smoke test.
   const TESTS = /^(SMOKE|TUNNEL|DOCKER)?TEST/;
   const PRESETS = ["1", "3", "6", "12", "24", "48", "72", "168"];
   const BINS = [60, 300, 600];   // seconds per movement bin on offer
@@ -304,6 +313,37 @@ function squiggle(color) {
   const binText = (s) => s < 60 ? `${s}-second` : `${s / 60}-minute`;
   const pollSeconds = () => !view.live ? 0 : view.hours <= 1 ? 30 : view.hours <= 12 ? 60 : view.hours <= 24 ? 120 : 300;
 
+  // The app's night clock (ios/Shared/NightClock.swift) on the phone's own
+  // time zone: a night is named by the local date of its evening, the most
+  // recent one to have reached its morning is `last`, and its check-in is
+  // open from 04:00 to 18:00. The streak counts rated nights back from
+  // `last`, or from the night before while that check-in is still open.
+  const localParts = (t, tz) => {
+    const f = new Intl.DateTimeFormat("en-CA", {timeZone: tz || undefined, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23"});
+    const o = Object.fromEntries(f.formatToParts(new Date(t * 1000)).map(x => [x.type, x.value]));
+    return {day: `${o.year}-${o.month}-${o.day}`, hour: +o.hour};
+  };
+  const shiftDay = (key, days) => new Date(Date.parse(key + "T00:00:00Z") + days * 86400000).toISOString().slice(0, 10);
+  const nightClock = (tz, now) => {
+    const hour = localParts(now, tz).hour;
+    return {last: shiftDay(localParts(now - 4 * 3600, tz).day, -1), open: hour >= 4 && hour < 18};
+  };
+  const streak = (nights, clock) => {
+    const rated = new Set(nights);
+    let night = clock.last, n = 0;
+    if (!rated.has(night) && clock.open) night = shiftDay(night, -1);
+    while (rated.has(night)) { n++; night = shiftDay(night, -1); }
+    return n;
+  };
+  const hm = (m) => { m = Math.round(m); const h = Math.floor(m / 60), r = m % 60; return h ? (r ? `${h} h ${r} min` : `${h} h`) : `${r} min`; };
+  const signed = (m) => (m > 0 ? "+" : m < 0 ? "\u2212" : "") + hm(Math.abs(m));
+  const nightLabel = (key) => {
+    const a = new Date(key + "T12:00:00"), b = new Date(a.getTime() + 86400000), day = {month: "short", day: "numeric"};
+    return `${a.toLocaleDateString([], day)} to ${a.getMonth() === b.getMonth() ? b.getDate() : b.toLocaleDateString([], day)}`;
+  };
+  const TEST_NAMES = {pvt: "reaction", dsst: "symbols", nback2: "2-back", gonogo: "go / no-go"};
+  const testScore = (t) => t.score == null ? "no score" : t.test === "pvt" ? `${Math.round(t.score)} ms` : t.test === "dsst" ? `${Math.round(t.score)} right` : `${Math.round(t.score)}%`;
+
   // Capsule segments, the selected option filled in mint; a window that is
   // not a preset leaves every window segment empty.
   const PRESET_LABELS = {1: "1 h", 3: "3 h", 6: "6 h", 12: "12 h", 24: "24 h", 48: "2 days", 72: "3 days", 168: "7 days"};
@@ -353,7 +393,7 @@ function squiggle(color) {
       const r = await fetch(`${API}/live?${req}`, {cache: "no-store"});
       if (!r.ok) throw new Error(`server answered ${r.status}`);
       const d = await r.json();
-      d.phones = (d.phones || []).filter(p => !TESTS.test(p.pid));
+      d.phones = (d.phones || []).filter(p => !TESTS.test(p.pid) && !String((p.last || {}).model || "").startsWith("simulator:"));
       const numbered = await assignLabels(d.phones);
       if (req !== queryString()) return;   // the window changed while this answer was in flight
       data = d; labels = numbered; failed = false;
@@ -406,7 +446,15 @@ function squiggle(color) {
       const i0 = Math.max(0, Math.floor((a - since) / BIN)), i1 = Math.min(n, Math.ceil((b - since) / BIN));
       for (let i = i0; i < i1; i++) if (code > sleep[i] || sleep[i] === 1) sleep[i] = code;
     }
-    for (let i = 0; i < n; i++) if (sleep[i] === 2) asleep++;
+    // The night the app showed at a check-in when it read it from the phone
+    // at rest (4), wherever Health has nothing.
+    for (const ci of (p.checkins || [])) {
+      if (ci.source !== "phone" || ci.start == null || ci.end == null) continue;
+      const i0 = Math.max(0, Math.floor((ci.start - since) / BIN)), i1 = Math.min(n, Math.ceil((ci.end - since) / BIN));
+      for (let i = i0; i < i1; i++) if (sleep[i] === 0) sleep[i] = 4;
+    }
+    let atRest = 0;
+    for (let i = 0; i < n; i++) { if (sleep[i] === 2) asleep++; else if (sleep[i] === 4) atRest++; }
     // Charging state per slot: 0 unknown, 1 plugged in, 2 on battery, from
     // the events and from the battery state each upload carried (the only
     // anchor for phones without the keep-alive). An unknown state changes nothing.
@@ -420,7 +468,7 @@ function squiggle(color) {
       charging[i] = cstate; if (cstate === 1) plugged++;
     }
     const hasCharging = anchors.length > 0 || !!p.charging_prev;
-    return {cat, mad, n, mv, st, nd: n - mv - st, since, until, steps, stepsTotal: Math.round(stepsTotal), sleep, asleep, charging, plugged, hasCharging};
+    return {cat, mad, n, mv, st, nd: n - mv - st, since, until, steps, stepsTotal: Math.round(stepsTotal), sleep, asleep, atRest, charging, plugged, hasCharging};
   }
 
   // What a drawn column shows when there are more slots than columns: the
@@ -428,7 +476,7 @@ function squiggle(color) {
   // listed first in `prefer`.
   function columns(arr, n, cols, prefer) {
     if (cols >= n) return arr;
-    const out = new Uint8Array(cols), counts = new Uint32Array(4);
+    const out = new Uint8Array(cols), counts = new Uint32Array(5);
     for (let j = 0; j < cols; j++) {
       const i0 = Math.floor(j * n / cols), i1 = Math.max(i0 + 1, Math.floor((j + 1) * n / cols));
       counts.fill(0);
@@ -462,7 +510,7 @@ function squiggle(color) {
     let rects = `<defs>${clip("m", top, h)}${clip("c", chgTop, chgH)}${clip("s", sleepTop, sleepH)}</defs>`;
     rects += `<g clip-path="url(#${id}m)">${bars(columns(c.cat, c.n, cols, [2, 1]), top, h, [C.none, C.sky, C.pink])}</g>`;
     rects += `<g clip-path="url(#${id}c)">${bars(columns(c.charging, c.n, cols, [1, 2]), chgTop, chgH, [C.raised, C.mint, C.battery])}</g>`;
-    rects += `<g clip-path="url(#${id}s)">${bars(columns(c.sleep, c.n, cols, [2, 3, 1]), sleepTop, sleepH, [C.raised, C.dim, C.blue, C.yellow])}</g>`;
+    rects += `<g clip-path="url(#${id}s)">${bars(columns(c.sleep, c.n, cols, [2, 3, 4, 1]), sleepTop, sleepH, [C.raised, C.dim, C.blue, C.yellow, C.rest])}</g>`;
     // Above the movement bar: uploads as triangles (mint = the participant
     // opened the app, gray = background or keep-alive) and a pink cross per
     // force-quit (forceQuit exact; terminated inferred at the next launch,
@@ -482,6 +530,18 @@ function squiggle(color) {
       if (t < c.since || t > c.until || (ev !== "forceQuit" && ev !== "terminated")) continue;
       const x = xOf(t);
       rects += mark(x, `<path d="M${(x - 4).toFixed(1)} 1 L${(x + 4).toFixed(1)} ${top - 3} M${(x + 4).toFixed(1)} 1 L${(x - 4).toFixed(1)} ${top - 3}" stroke="${C.pink}" stroke-width="${ev === "forceQuit" ? 2 : 1.2}" ${ev === "terminated" ? 'stroke-dasharray="2,1.5"' : ""}/>`);
+    }
+    // A yellow line through the tracks at each morning check-in; a diamond
+    // per 1-minute test, yellow for the check-in's own and sky from the Tests tab.
+    for (const ci of (p.checkins || [])) {
+      if (ci.rated == null || ci.rated < c.since || ci.rated > c.until) continue;
+      const x = xOf(ci.rated).toFixed(1);
+      rects += `<line x1="${x}" x2="${x}" y1="${top - 4}" y2="${axisBase}" stroke="${C.yellow}" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+    }
+    for (const t of (p.tests || [])) {
+      if (t.t == null || t.t < c.since || t.t > c.until) continue;
+      const x = xOf(t.t);
+      rects += `<path d="M${x.toFixed(1)} .5L${(x + 5).toFixed(1)} 7L${x.toFixed(1)} 13.5L${(x - 5).toFixed(1)} 7Z" fill="${t.source === "checkin" ? C.yellow : C.sky}" stroke="${C.page}" stroke-width="1.2" vector-effect="non-scaling-stroke"/>`;
     }
     // Last upload marker.
     if (p.last && p.last.created >= c.since && p.last.created <= c.until) {
@@ -568,11 +628,14 @@ function squiggle(color) {
     cls = new Map(phones.map(p => [p.pid, classify(p, thr)]));
     const cov = active.map(p => { const c = cls.get(p.pid); return (c.mv + c.st) / c.n; }).sort((a, b) => a - b);
     const medCov = cov.length ? cov[Math.floor(cov.length / 2)] : 0;
+    const raters = phones.filter(p => (p.checkin_nights || []).length);
+    const ratedLast = raters.filter(p => p.checkin_nights.includes(nightClock(p.last.time_zone, now).last));
     $("stats").innerHTML = `
       <div class="card stat"><div class="k">Phones heard from ${squiggle(C.yellow)}</div><div class="v">${active.length}</div><div class="d">with an upload in ${spanText}, of ${phones.length} ever seen</div></div>
       <div class="card stat"><div class="k">Recording now ${squiggle(C.pink)}</div><div class="v ${armed.length ? "" : "warn"}">${armed.length}</div><div class="d">phones inside a 12-hour window armed at their last open</div></div>
       <div class="card stat"><div class="k">Uploads ${squiggle(C.mint)}</div><div class="v">${uploads}</div><div class="d">in ${spanText}, all triggers</div></div>
-      <div class="card stat"><div class="k">Coverage ${squiggle(C.sky)}</div><div class="v">${Math.round(medCov * 100)}%</div><div class="d">median share of the window with a recorded bin, phones heard from</div></div>`;
+      <div class="card stat"><div class="k">Coverage ${squiggle(C.sky)}</div><div class="v">${Math.round(medCov * 100)}%</div><div class="d">median share of the window with a recorded bin, phones heard from</div></div>
+      <div class="card stat"><div class="k">Checked in ${squiggle(C.blue)}</div><div class="v">${ratedLast.length}</div><div class="d">rated last night, of ${raters.length} phone${raters.length === 1 ? "" : "s"} that ever checked in</div></div>`;
 
     if (!phones.length) { $("lanes").innerHTML = `<div class="empty">No uploads yet.</div>`; return; }
     $("lanes").innerHTML = phones.map((p, k) => {
@@ -584,6 +647,9 @@ function squiggle(color) {
       const errs = L.n_errors ? ` · <span class="warn">${L.n_errors} error${L.n_errors > 1 ? "s" : ""}</span>` : "";
       const bat = L.battery_state && L.battery_state !== "unknown"
         ? ` · ${L.battery_state === "unplugged" ? "on battery" : "plugged in"}${L.battery_level != null ? ` ${L.battery_level}%` : ""}${L.low_power ? ", Low Power Mode" : ""} at last upload` : "";
+      const nights = p.checkin_nights || [], clock = nightClock(L.time_zone, now);
+      const checkin = !nights.length ? "" : `<span class="meta">${nights.includes(clock.last) ? `<span class="ok">checked in</span> for last night`
+        : clock.open ? `<span class="warn">no check-in yet</span> for last night` : `<span class="warn">missed</span> last night's check-in`} · streak <b>${streak(nights, clock)}</b></span>`;
       const quits = (p.screen || []).filter(([t, e]) => t >= c.since && t <= c.until && (e === "forceQuit" || e === "terminated")).length;
       const sw = (color) => `<i class="sw" style="background:${color}"></i>`;
       const totals = [`${sw(C.pink)}<b>${mins(c.mv)}</b> moving`, `${sw(C.sky)}<b>${mins(c.st)}</b> still`,
@@ -591,15 +657,31 @@ function squiggle(color) {
       if (quits) totals.push(`<b>${quits}</b> force-quit${quits === 1 ? "" : "s"}`);
       if (c.hasCharging) totals.push(`${sw(C.mint)}<b>${mins(c.plugged)}</b> plugged in`,
                                      `<b>${(p.charging || []).filter(([t, e]) => t >= c.since && t <= c.until && e === "pluggedIn").length}</b> plug-ins`);
+      if (c.atRest) totals.splice(4, 0, `${sw(C.rest)}<b>${mins(c.atRest)}</b> night read from the phone`);
+      for (const kind of Object.keys(TEST_NAMES)) {
+        const runs = (p.tests || []).filter(t => t.test === kind && t.completed && t.score != null);
+        if (runs.length) totals.push(`<i class="dm"></i><b>${testScore(runs[runs.length - 1])}</b> ${TEST_NAMES[kind]}${runs.length > 1 ? `, latest of ${runs.length} runs` : ""}`);
+      }
       totals.push(`last bin ${c.mv + c.st ? fmtDT(p.bins[p.bins.length - 1][0]) : "none in window"}`);
+      // One row per check-in of the window: the rating and the guess, given
+      // before the app showed the night, beside what it then showed.
+      const runById = new Map((p.tests || []).map(t => [t.id, t]));
+      const rows = (p.checkins || []).map(ci => {
+        const run = runById.get(ci.test);
+        return `<tr><td>${nightLabel(ci.night)}</td><td>${ci.quality != null ? `${ci.quality} of 5` : ""}</td><td>${ci.hours != null ? hm(ci.hours * 60) : ""}</td>`
+          + (ci.minutes != null ? `<td>${hm(ci.minutes)}, ${ci.source === "health" ? "Health" : "phone at rest"}</td><td>${ci.hours != null ? signed(Math.round(ci.hours * 60 - ci.minutes)) : ""}</td>` : `<td class="muted">nothing measured</td><td></td>`)
+          + `<td${ci.skipped ? ` class="muted"` : ""}>${ci.skipped ? "skipped" : run ? testScore(run) : ""}</td></tr>`;
+      }).join("");
+      const table = rows ? `<div class="nights-wrap"><table class="nights"><tr><th>Night</th><th>Rating</th><th>Own guess</th><th>App showed</th><th>Guess minus shown</th><th>Reaction test</th></tr>${rows}</table></div>` : "";
       return `<div class="card lane">
         <div class="head"><span class="pid display">${labels.get(p.pid)} ${squiggle(ACCENTS[k % ACCENTS.length])}</span>
           <span class="meta">last upload <b class="${stale ? "warn" : ""}">${ago(L.created, now)}</b> (${fmtDT(L.created)}, ${L.trigger || "v1.0"})${errs}</span>
           <span class="meta">${rec}${L.keep_alive ? ` · <span class="ok">keep-alive on</span>` : ""}${bat}</span>
+          ${checkin}
           <span class="meta">${p.uploads_window} upload${p.uploads_window === 1 ? "" : "s"} in window · ${p.uploads} total · v${L.app_version || "?"} · ${L.model || ""} · code <b>${p.receipt}</b></span>
         </div>
         <div class="strip">${strip(p, c)}</div>
-        <div class="totals">${totals.map(t => `<span>${t}</span>`).join("")}</div>
+        <div class="totals">${totals.map(t => `<span>${t}</span>`).join("")}</div>${table}
       </div>`;
     }).join("");
     wire();
@@ -627,8 +709,12 @@ function squiggle(color) {
         const evName = {forceQuit: "force-quit", terminated: "app ended (inferred)", launch: "app launched", launchBackground: "app woke in the background", pluggedIn: "plugged in", unplugged: "unplugged", batteryFull: "battery full"};
         const evs = (p.screen || []).filter(([t, e]) => t >= slotStart - BIN && t < slotEnd + BIN && evName[e]).map(([, e]) => evName[e]);
         const chg = (p.charging || []).filter(([t]) => t >= slotStart - BIN && t < slotEnd + BIN).map(([, e, lv]) => (evName[e] || e) + (lv != null ? ` ${lv}%` : ""));
-        const marks = [...ups, ...evs, ...chg].length ? " · " + [...ups, ...evs, ...chg].join(", ") : "";
-        const sl = ["", " · plugged in", " · on battery"][c.charging[i]] + ["", " · in bed", " · asleep", " · awake"][c.sleep[i]] + marks;
+        const near = (t) => t != null && t >= slotStart - BIN && t < slotEnd + BIN;
+        const cis = (p.checkins || []).filter(ci => near(ci.rated)).map(ci => `check-in ${ci.quality} of 5, guessed ${hm(ci.hours * 60)}`);
+        const tts = (p.tests || []).filter(t => near(t.t)).map(t => `${TEST_NAMES[t.test]} test ${testScore(t)}${t.completed ? "" : " (cut short)"}`);
+        const all = [...ups, ...evs, ...chg, ...cis, ...tts];
+        const marks = all.length ? " · " + all.join(", ") : "";
+        const sl = ["", " · plugged in", " · on battery"][c.charging[i]] + ["", " · in bed", " · asleep", " · awake", " · night read from the phone"][c.sleep[i]] + marks;
         tip.textContent = `${fmtDT(t)} (${binText(BIN)} bin) · ${label}${sl}`;
         tip.style.left = x + "px"; tip.style.top = "0px"; tip.style.display = "block";
       });
