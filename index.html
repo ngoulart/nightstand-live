@@ -77,7 +77,7 @@
   .legend .row .mv::before { background:var(--pink); } .legend .row .st::before { background:var(--sky); } .legend .row .nd::before { background:var(--none); }
   .legend .row .sl::before { background:var(--blue); } .legend .row .aw::before { background:var(--yellow); } .legend .row .ib::before { background:var(--dim); }
   .legend .row .pl::before { background:var(--mint); } .legend .row .ob::before { background:var(--battery); }
-  .legend .row .ph::before { background:var(--rest); }
+  .legend .row .ph::before { background:var(--rest); } .legend .row .in::before { background:var(--pink); }
   .legend .row .ci::before { width:3px; height:12px; border-radius:1px; background:var(--yellow); }
   .legend .row .tt::before, .totals .dm { width:8px; height:8px; border-radius:1px; background:var(--sky); transform:rotate(45deg); display:inline-block; }
   .legend .row .up::before, .legend .row .upbg::before { width:0; height:0; border-radius:0; background:none; border-left:6px solid transparent; border-right:6px solid transparent; border-top:11px solid var(--mint); }
@@ -126,7 +126,7 @@
   <div class="top"><span class="display">NightStand</span><span id="sticker"></span></div>
   <div class="paper-wrap"><div class="paper" id="paper">
     <h1 class="display">Who is recording right now, and what the chosen hours looked like</h1>
-    <p>One lane per phone. Each bin of the phone's movement (1, 5 or 10 minutes, chosen below) is <b>moving</b>, <b>still</b>, or <b>not recorded</b>; below it whether the phone was plugged in and the night, from Health or as the app read it from the phone at rest. Bins reach the server only when the app runs, so a lane ends at that phone's last upload.</p>
+    <p>One lane per phone. Each bin of the phone's movement (1, 5 or 10 minutes, chosen below) is <b>moving</b>, <b>still</b>, or <b>not recorded</b>; below it whether the phone was plugged in and the night, from Health or from the phone at rest by the app's rule: still for 30 minutes or more, and a use of up to 5 minutes between two such rests is an interruption of one night. Bins reach the server only when the app runs, so a lane ends at that phone's last upload.</p>
   </div></div>
 
   <div class="card controls">
@@ -153,12 +153,12 @@
     <div class="rows">
       <div class="row"><span class="lab">Movement</span><span class="mv">moving</span><span class="st">still</span><span class="nd">no data</span></div>
       <div class="row"><span class="lab">Charging</span><span class="pl">plugged in</span><span class="ob">on battery</span><span class="nd">unknown</span></div>
-      <div class="row"><span class="lab">Sleep</span><span class="sl">asleep</span><span class="aw">awake in bed</span><span class="ib">in bed</span><span class="ph">night read from the phone</span></div>
+      <div class="row"><span class="lab">Sleep</span><span class="sl">asleep</span><span class="aw">awake in bed</span><span class="ib">in bed</span><span class="ph">at rest, phone rule</span><span class="in">interruption</span></div>
       <div class="row"><span class="lab">Marks</span><span class="up">upload after opening the app</span><span class="upbg">upload by itself</span><span class="fq">force-quit</span><span class="ci">morning check-in</span><span class="tt">test</span></div>
     </div></div>
   <div id="lanes"></div>
 
-  <div class="note"><b>Reading a lane.</b> A recording is armed for 12 hours at every open, so a phone that opened the app at bedtime has a lane that runs to the morning once it opens again. Gray at the right end is normal until the next open or background refresh; gray for a whole night means the recording was not armed or the upload has not come in yet.</div>
+  <div class="note"><b>The phone rule.</b> The page applies the app's rule to each lane's own bins, night by night (6 pm to noon on the phone's clock): a rest is 30 minutes or more of still bins, a minute of movement inside it is ignored, two rests no more than 5 minutes apart with every bin between them recorded are one night, and the night with the most rest counts from two hours up. Efficiency is the rest over the rest plus the interruptions. It needs the 1-minute interval, follows the still threshold above, and reads only the part of a night inside the window. <b>Reading a lane.</b> A recording is armed for 12 hours at every open, so a phone that opened the app at bedtime has a lane that runs to the morning once it opens again. Gray at the right end is normal until the next open or background refresh; gray for a whole night means the recording was not armed or the upload has not come in yet.</div>
 </div>
 
 <script>
@@ -342,8 +342,8 @@ function squiggle(color) {
     const a = new Date(key + "T12:00:00"), b = new Date(a.getTime() + 86400000), day = {month: "short", day: "numeric"};
     return `${a.toLocaleDateString([], day)} to ${a.getMonth() === b.getMonth() ? b.getDate() : b.toLocaleDateString([], day)}`;
   };
-  const TEST_NAMES = {pvt: "reaction", dsst: "symbols", nback2: "2-back", gonogo: "go / no-go"};
-  const testScore = (t) => t.score == null ? "no score" : t.test === "pvt" ? `${Math.round(t.score)} ms` : t.test === "dsst" ? `${Math.round(t.score)} right` : `${Math.round(t.score)}%`;
+  const TEST_NAMES = {pvt: "reaction", dsst: "symbols", nback2: "2-back", gonogo: "go / no-go", simon: "sequence", stroop: "colors"};
+  const testScore = (t) => t.score == null ? "no score" : t.test === "pvt" ? `${Math.round(t.score)} ms` : t.test === "dsst" || t.test === "stroop" ? `${Math.round(t.score)} right` : t.test === "simon" ? `${Math.round(t.score)} pads` : `${Math.round(t.score)}%`;
 
   // Capsule segments, the selected option filled in mint; a window that is
   // not a preset leaves every window segment empty.
@@ -417,6 +417,68 @@ function squiggle(color) {
     countdown = pollSeconds() || 30;
   }
 
+  // The app's rule for a night without a watch (ios/NomoMotion/NightFeedback.swift)
+  // on the lane's own bins. A run of still bins survives a minute of
+  // movement and ends at any missing bin; runs of 30 minutes or more are
+  // rests; two rests no more than 5 minutes apart, with every bin between
+  // them recorded, are one night with an interruption. Per night (18:00 to
+  // noon on the phone's clock) the chain with the most rest wins, from two
+  // hours of rest up. Bins longer than a minute cannot carry it.
+  const RULE = {restS: 30 * 60, bridgeS: 5 * 60, breakS: 60, minimumS: 120 * 60, maxBinS: 60};
+  const nightKeys = new Map();
+  // The night each slot belongs to (the local date of its evening), or null from noon to 18:00.
+  function nightOfSlots(tz, since, n) {
+    const id = `${tz}|${since}|${n}|${BIN}`;
+    if (nightKeys.has(id)) return nightKeys.get(id);
+    const out = new Array(n).fill(null), byQuarter = new Map();
+    for (let i = 0; i < n; i++) {
+      const q = Math.floor((since + i * BIN) / 900);   // quarter hours, for zones offset by 30 or 45 minutes
+      if (!byQuarter.has(q)) {
+        const {day, hour} = localParts(q * 900, tz);
+        byQuarter.set(q, hour >= 18 ? day : hour < 12 ? shiftDay(day, -1) : null);
+      }
+      out[i] = byQuarter.get(q);
+    }
+    if (nightKeys.size > 200) nightKeys.clear();
+    nightKeys.set(id, out);
+    return out;
+  }
+  function phoneNights(cat, n, since, tz) {
+    if (BIN > RULE.maxBinS) return null;
+    const night = nightOfSlots(tz, since, n), breakBins = Math.floor(RULE.breakS / BIN);
+    const runs = [];
+    let cur = null, moving = 0, gap = false, key = null;
+    const close = () => { if (cur) runs.push(cur); cur = null; moving = 0; };
+    for (let i = 0; i < n; i++) {
+      if (night[i] !== key) { close(); key = night[i]; gap = true; }
+      if (key === null) continue;
+      if (cat[i] === 0) { close(); gap = true; continue; }
+      if (cat[i] === 1) {
+        if (!cur) { cur = {a: i, b: i, gap, key}; gap = false; }
+        cur.b = i + 1; moving = 0;
+      } else if (cur && ++moving > breakBins) close();
+    }
+    close();
+    const best = new Map();
+    let chain = null, gapSince = false;
+    const keep = () => { if (chain && chain.rest > (best.has(chain.key) ? best.get(chain.key).rest : 0)) best.set(chain.key, chain); chain = null; };
+    for (const r of runs) {
+      if (r.gap) gapSince = true;
+      const length = (r.b - r.a) * BIN;
+      if (length < RULE.restS) continue;
+      if (chain && chain.key === r.key && !gapSince && (r.a - chain.b) * BIN <= RULE.bridgeS) {
+        chain.breaks.push([chain.b, r.a]); chain.awake += (r.a - chain.b) * BIN;
+        chain.rests.push([r.a, r.b]); chain.rest += length; chain.b = r.b;
+      } else {
+        keep();
+        chain = {key: r.key, a: r.a, b: r.b, rest: length, awake: 0, rests: [[r.a, r.b]], breaks: []};
+      }
+      gapSince = false;
+    }
+    keep();
+    return [...best.values()].filter(c => c.rest >= RULE.minimumS).sort((x, y) => x.a - y.a);
+  }
+
   function classify(p, thr) {
     const since = data.from, until = data.to, n = Math.ceil((until - since) / BIN);
     const cat = new Uint8Array(n), mad = new Float32Array(n);
@@ -447,13 +509,15 @@ function squiggle(color) {
       const i0 = Math.max(0, Math.floor((a - since) / BIN)), i1 = Math.min(n, Math.ceil((b - since) / BIN));
       for (let i = i0; i < i1; i++) if (code > sleep[i] || sleep[i] === 1) sleep[i] = code;
     }
-    // The night the app showed at a check-in when it read it from the phone
-    // at rest (4), wherever Health has nothing.
-    for (const ci of (p.checkins || [])) {
-      if (ci.source !== "phone" || ci.start == null || ci.end == null) continue;
-      const i0 = Math.max(0, Math.floor((ci.start - since) / BIN)), i1 = Math.min(n, Math.ceil((ci.end - since) / BIN));
-      for (let i = i0; i < i1; i++) if (sleep[i] === 0) sleep[i] = 4;
+    // The nights by the phone rule, wherever Health has nothing: at rest (4)
+    // and the interruptions between the rests (5).
+    const chains = phoneNights(cat, n, since, (p.last || {}).time_zone);
+    for (const c of chains || []) {
+      for (const [a, b] of c.rests) for (let i = a; i < b; i++) if (sleep[i] === 0) sleep[i] = 4;
+      for (const [a, b] of c.breaks) for (let i = a; i < b; i++) if (sleep[i] === 0) sleep[i] = 5;
     }
+    const nights = chains && chains.map(c => ({night: c.key, start: since + c.a * BIN, end: since + c.b * BIN,
+                                               rest: c.rest / 60, awake: c.awake / 60, interruptions: c.breaks.length}));
     let atRest = 0;
     for (let i = 0; i < n; i++) { if (sleep[i] === 2) asleep++; else if (sleep[i] === 4) atRest++; }
     // Charging state per slot: 0 unknown, 1 plugged in, 2 on battery, from
@@ -469,7 +533,7 @@ function squiggle(color) {
       charging[i] = cstate; if (cstate === 1) plugged++;
     }
     const hasCharging = anchors.length > 0 || !!p.charging_prev;
-    return {cat, mad, n, mv, st, nd: n - mv - st, since, until, steps, stepsTotal: Math.round(stepsTotal), sleep, asleep, atRest, charging, plugged, hasCharging};
+    return {cat, mad, n, mv, st, nd: n - mv - st, since, until, steps, stepsTotal: Math.round(stepsTotal), sleep, asleep, atRest, nights, charging, plugged, hasCharging};
   }
 
   // What a drawn column shows when there are more slots than columns: the
@@ -477,7 +541,7 @@ function squiggle(color) {
   // listed first in `prefer`.
   function columns(arr, n, cols, prefer) {
     if (cols >= n) return arr;
-    const out = new Uint8Array(cols), counts = new Uint32Array(5);
+    const out = new Uint8Array(cols), counts = new Uint32Array(6);
     for (let j = 0; j < cols; j++) {
       const i0 = Math.floor(j * n / cols), i1 = Math.max(i0 + 1, Math.floor((j + 1) * n / cols));
       counts.fill(0);
@@ -511,7 +575,7 @@ function squiggle(color) {
     let rects = `<defs>${clip("m", top, h)}${clip("c", chgTop, chgH)}${clip("s", sleepTop, sleepH)}</defs>`;
     rects += `<g clip-path="url(#${id}m)">${bars(columns(c.cat, c.n, cols, [2, 1]), top, h, [C.none, C.sky, C.pink])}</g>`;
     rects += `<g clip-path="url(#${id}c)">${bars(columns(c.charging, c.n, cols, [1, 2]), chgTop, chgH, [C.raised, C.mint, C.battery])}</g>`;
-    rects += `<g clip-path="url(#${id}s)">${bars(columns(c.sleep, c.n, cols, [2, 3, 4, 1]), sleepTop, sleepH, [C.raised, C.dim, C.blue, C.yellow, C.rest])}</g>`;
+    rects += `<g clip-path="url(#${id}s)">${bars(columns(c.sleep, c.n, cols, [2, 3, 5, 4, 1]), sleepTop, sleepH, [C.raised, C.dim, C.blue, C.yellow, C.rest, C.pink])}</g>`;
     // Above the movement bar: uploads as triangles (mint = the participant
     // opened the app, gray = background or keep-alive) and a pink cross per
     // force-quit (forceQuit exact; terminated inferred at the next launch,
@@ -662,22 +726,33 @@ function squiggle(color) {
       if (quits) totals.push(`<b>${quits}</b> force-quit${quits === 1 ? "" : "s"}`);
       if (c.hasCharging) totals.push(`${sw(C.mint)}<b>${mins(c.plugged)}</b> plugged in`,
                                      `<b>${(p.charging || []).filter(([t, e]) => t >= c.since && t <= c.until && e === "pluggedIn").length}</b> plug-ins`);
-      if (c.atRest) totals.splice(4, 0, `${sw(C.rest)}<b>${mins(c.atRest)}</b> night read from the phone`);
+      if (c.atRest) totals.splice(4, 0, `${sw(C.rest)}<b>${mins(c.atRest)}</b> at rest by the phone rule`);
+      if (!c.nights) totals.splice(4, 0, `the phone rule needs the 1-minute interval`);
       for (const kind of Object.keys(TEST_NAMES)) {
         const runs = (p.tests || []).filter(t => t.test === kind && t.completed && t.score != null);
         if (runs.length) totals.push(`<i class="dm"></i><b>${testScore(runs[runs.length - 1])}</b> ${TEST_NAMES[kind]}${runs.length > 1 ? `, latest of ${runs.length} runs` : ""}`);
       }
       totals.push(`last bin ${c.mv + c.st ? fmtDT(p.bins[p.bins.length - 1][0]) : "none in window"}`);
-      // One row per check-in of the window: the rating and the guess, given
-      // before the app showed the night, beside what it then showed.
+      // One row per night of the window: the night by the phone rule, and
+      // the check-in (the rating and the guess, given before the app showed
+      // the night, beside what it then showed).
       const runById = new Map((p.tests || []).map(t => [t.id, t]));
-      const rows = (p.checkins || []).map(ci => {
-        const run = runById.get(ci.test);
-        return `<tr><td>${nightLabel(ci.night)}</td><td>${ci.quality != null ? `${ci.quality} of 5` : ""}</td><td>${ci.hours != null ? hm(ci.hours * 60) : ""}</td>`
-          + (ci.minutes != null ? `<td>${hm(ci.minutes)}, ${ci.source === "health" ? "Health" : "phone at rest"}</td><td>${ci.hours != null ? signed(Math.round(ci.hours * 60 - ci.minutes)) : ""}</td>` : `<td class="muted">nothing measured</td><td></td>`)
-          + `<td${ci.skipped ? ` class="muted"` : ""}>${ci.skipped ? "skipped" : run ? testScore(run) : ""}</td></tr>`;
+      const byNight = new Map();
+      for (const nt of (c.nights || [])) byNight.set(nt.night, {rule: nt});
+      for (const ci of (p.checkins || [])) byNight.set(ci.night, {...(byNight.get(ci.night) || {}), ci});
+      const rows = [...byNight.keys()].sort().map(key => {
+        const {rule, ci} = byNight.get(key);
+        const run = ci && runById.get(ci.test);
+        const ruleCells = rule
+          ? `<td>${hm(rule.rest)}</td><td>${fmtTime(rule.start)} to ${fmtTime(rule.end)}</td><td>${rule.interruptions ? `${rule.interruptions}, ${hm(rule.awake)}` : "none"}</td><td>${Math.round(100 * rule.rest / (rule.rest + rule.awake))}%</td>`
+          : `<td class="muted" colspan="4">${c.nights ? "no night by the rule" : "needs the 1-minute interval"}</td>`;
+        const ciCells = !ci ? `<td class="muted" colspan="5">no check-in</td>`
+          : `<td>${ci.quality != null ? `${ci.quality} of 5` : ""}</td><td>${ci.hours != null ? hm(ci.hours * 60) : ""}</td>`
+            + (ci.minutes != null ? `<td>${hm(ci.minutes)}, ${ci.source === "health" ? "Health" : "phone at rest"}</td><td>${ci.hours != null ? signed(Math.round(ci.hours * 60 - ci.minutes)) : ""}</td>` : `<td class="muted">nothing measured</td><td></td>`)
+            + `<td${ci.skipped ? ` class="muted"` : ""}>${ci.skipped ? "skipped" : run ? testScore(run) : ""}</td>`;
+        return `<tr><td>${nightLabel(key)}</td>${ruleCells}${ciCells}</tr>`;
       }).join("");
-      const table = rows ? `<div class="nights-wrap"><table class="nights"><tr><th>Night</th><th>Rating</th><th>Own guess</th><th>App showed</th><th>Guess minus shown</th><th>Reaction test</th></tr>${rows}</table></div>` : "";
+      const table = rows ? `<div class="nights-wrap"><table class="nights"><tr><th>Night</th><th>At rest (rule)</th><th>From, to</th><th>Interruptions</th><th>Efficiency</th><th>Rating</th><th>Own guess</th><th>App showed</th><th>Guess minus shown</th><th>Reaction test</th></tr>${rows}</table></div>` : "";
       return `<div class="card lane">
         <div class="head"><span class="pid display">${labels.get(p.pid)} ${squiggle(ACCENTS[k % ACCENTS.length])}</span>
           <span class="meta">last upload <b class="${stale ? "warn" : ""}">${ago(L.created, now)}</b> (${fmtDT(L.created)}, ${L.trigger || "v1.0"})${errs}</span>
@@ -720,7 +795,7 @@ function squiggle(color) {
         const tts = (p.tests || []).filter(t => near(t.t)).map(t => `${TEST_NAMES[t.test]} test ${testScore(t)}${t.completed ? "" : " (cut short)"}`);
         const all = [...ups, ...evs, ...chg, ...cis, ...tts];
         const marks = all.length ? " · " + all.join(", ") : "";
-        const sl = ["", " · plugged in", " · on battery"][c.charging[i]] + ["", " · in bed", " · asleep", " · awake", " · night read from the phone"][c.sleep[i]] + marks;
+        const sl = ["", " · plugged in", " · on battery"][c.charging[i]] + ["", " · in bed", " · asleep", " · awake", " · at rest (phone rule)", " · interruption (phone rule)"][c.sleep[i]] + marks;
         tip.textContent = `${fmtDT(t)} (${binText(BIN)} bin) · ${label}${sl}`;
         tip.style.left = x + "px"; tip.style.top = "0px"; tip.style.display = "block";
       });
